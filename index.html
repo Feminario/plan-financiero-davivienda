@@ -28,8 +28,26 @@ window.LOGO_DAVI = "data:image/png;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1
 <script type="text/babel">
 const { useState, useMemo } = React;
 
-const GF_ACTION = "https://docs.google.com/forms/d/e/REEMPLAZAR_FORM_ID/formResponse";
-const GF_FIELDS = { nombre:"entry.REEMPLAZAR_1", apellido:"entry.REEMPLAZAR_2", email:"entry.REEMPLAZAR_3", celular:"entry.REEMPLAZAR_4" };
+const GF_ACTION = "https://docs.google.com/forms/d/e/1FAIpQLSeGhIP24aTVpytSfPeZHSdUKoBAjr8JI_SsqkT3s1d24lOZFA/formResponse";
+const GF_FIELDS = {
+  etapa:            "entry.616408994",
+  nombre:           "entry.1846680309",
+  apellido:         "entry.72508615",
+  email:            "entry.474599740",
+  celular:          "entry.428936942",
+  gastosMensuales:  "entry.1432353731",
+  patrimonioActual: "entry.913179352",
+  metasResumen:     "entry.967247057",
+  ahorroMensualMetas:"entry.759691402",
+  montoLibertad:    "entry.280675509",
+  pctLibertad:      "entry.910577867",
+  edadActual:       "entry.1228731506",
+  edadRetiro:       "entry.473259863",
+  gastosRetiro:     "entry.526489838",
+  tasaRentabilidad: "entry.2049628862",
+  ahorroMensualRetiro:"entry.1245633077",
+  totalInversionRetiro:"entry.234649049",
+};
 
 const C = { plum:"#6B4B8A", teal:"#4A7C7E", peach:"#E8A87C", lilac:"#CEA2DD", davi:"#C8102E", gold:"#F0C040", green:"#5BA854" };
 const PAISES = [
@@ -44,6 +62,14 @@ const fmtB = n => { if(n>=1e9) return "$"+(n/1e9).toFixed(2).replace(/\.?0+$/,""
 
 let mc=0;
 const newMeta=(tipo)=>({id:++mc,nombre:"",costo:"",meses:"",tipo});
+
+// Convierte el arreglo de metas en un texto legible para una sola celda del Sheet
+function resumenMetas(metas){
+  const labels={corto:"Corto plazo",mediano:"Mediano plazo",largo:"Largo plazo"};
+  const todas=[...metas.corto,...metas.mediano,...metas.largo].filter(m=>parseFloat(m.costo)>0&&parseInt(m.meses)>0);
+  if(!todas.length) return "";
+  return todas.map(m=>`${labels[m.tipo]}: ${m.nombre||"(sin nombre)"} - $${m.costo} en ${m.meses} meses`).join(" | ");
+}
 
 function submitGF(data) {
   try {
@@ -165,8 +191,21 @@ function App() {
   const handleReg=()=>{
     if(!validate()) return;
     setSub(true);
-    submitGF({nombre:reg.nombre,apellido:reg.apellido,email:reg.email,celular:reg.indicativo+" "+reg.celular});
+    submitGF({etapa:"registro",nombre:reg.nombre,apellido:reg.apellido,email:reg.email,celular:reg.indicativo+" "+reg.celular});
     setTimeout(()=>{setSub(false);setStep(2);},900);
+  };
+
+  const handleFinal=()=>{
+    submitGF({
+      etapa:"completo",
+      nombre:reg.nombre, apellido:reg.apellido, email:reg.email, celular:reg.indicativo+" "+reg.celular,
+      gastosMensuales:gastos, patrimonioActual:patrimonioActual,
+      metasResumen:resumenMetas(metas), ahorroMensualMetas:totalMensualMetas,
+      montoLibertad:Math.round(libertadNum), pctLibertad:Math.round(pctLibertad),
+      edadActual:edadActual, edadRetiro:edadRetiro, gastosRetiro:gastosRetiro, tasaRentabilidad:tasaR,
+      ahorroMensualRetiro:Math.round(mensualRetiro), totalInversionRetiro:Math.round(totalInvRetiro),
+    });
+    setStep(4);
   };
 
   const updMeta=(tipo,id,k,v)=>setMetas(m=>({...m,[tipo]:m[tipo].map(x=>x.id===id?{...x,[k]:v}:x)}));
@@ -402,7 +441,7 @@ function App() {
               )}
             </div>
 
-            <button onClick={()=>setStep(4)} style={BTN()}>Ver mi hoja de ruta →</button>
+            <button onClick={handleFinal} style={BTN()}>Ver mi hoja de ruta →</button>
             <button onClick={()=>setStep(2)} style={BACK()}>← Ajustar mis metas</button>
           </div>
         )}
